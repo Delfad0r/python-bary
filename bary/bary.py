@@ -204,9 +204,6 @@ class Curve:
 				sym = ex.free_symbols
 				return x in sym or y in sym or z in sym
 			self._eqn = sympy.Mul(*(filter(is_not_constant, self._eqn.args)))
-		eqn_inv = sympy.simplify(-self._eqn)
-		if sympy.count_ops(self._eqn) > sympy.count_ops(eqn_inv):
-			self._eqn = eqn_inv
 
 
 #homogeneous solve
@@ -341,6 +338,15 @@ def circle_through_three_points(p1, p2, p3):
 	circle = Circle(u, v, w)
 	equations = [belongs_to(circle, p) for p in (p1, p2, p3)]
 	return circle.subs(sympy.solve(equations, u, v, w))
+
+def circle_center_radius(c, r):
+	return Curve(distance(c, Point(x, y, z)) ** 2 - r ** 2)
+
+def pow(circle, p):
+	if not p.is_normalized():
+		p = Npoint(*p)
+	l = tuple(p)
+	return circle.eqn().lhs.subs([(x, l[0]), (y, l[1]), (z, l[2])])
 	
 	
 #curves
