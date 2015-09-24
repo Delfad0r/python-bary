@@ -16,21 +16,16 @@ def _decorator_is_valid(func):
 		return func(self, *args, **kwargs)
 	return decorator
 
-def _decorator_simplify(func):
-		@functools.wraps(func)
-		def decorator(self, *args, **kwargs):
-			ret = func(self, *args, **kwargs)
-			self.simplify()
-			return ret
-		return decorator
-
 
 #enhanced tuple
 class _EnhancedTuple:
 	
-	@_decorator_simplify
-	def __init__(self, *args):
-		self._tuple = tuple(sympy.simplify(ex) for ex in args)
+	def __init__(self, *args, simplify = True):
+		if simplify:
+			self._tuple = tuple(sympy.simplify(ex) for ex in args)
+			self.simplify()
+		else:
+			self._tuple = args
 	
 	def __iter__(self):
 		return self._tuple.__iter__()
@@ -38,8 +33,8 @@ class _EnhancedTuple:
 	def __len__(self):
 		return self._tuple.__len__()
 	
-	def subs(self, *args, **kwargs):
-		return type(self)(*(ex.subs(*args, **kwargs) for ex in self._tuple))
+	def subs(self, *args, simplify = True, **kwargs):
+		return type(self)(*(ex.subs(*args, **kwargs) for ex in self._tuple), simplify = simplify)
 		
 	def is_valid(self):
 		return any(ex != 0 for ex in self._tuple)
@@ -68,6 +63,9 @@ class Htuple(_EnhancedTuple):
 #normalized tuple
 class Ntuple(_EnhancedTuple):
 	
+	def __init__(self, *args, simplify = True):
+		super().__init__(*args, simplify = True)
+	
 	def __repr__(self):
 		return '(%s)' % ' , '.join(ex.__repr__() for ex in self._tuple)
 	
@@ -88,22 +86,22 @@ class _PointTransform:
 	def cycle(self):
 		f, g, h = self._tuple
 		subs_dict = {a : b, b : c, c : a}
-		return type(self)(*(ex.subs(subs_dict, simultaneous = True) for ex in (h, f, g)))
+		return type(self)(*(ex.subs(subs_dict, simultaneous = True, simplify = False) for ex in (h, f, g)))
 
 	def swapxy(self):
 		f, g, h = self._tuple
 		subs_dict = {a : b, b : a}
-		return type(self)(*(ex.subs(subs_dict, simultaneous = True) for ex in (g, f, h)))
+		return type(self)(*(ex.subs(subs_dict, simultaneous = True, simplify = False) for ex in (g, f, h)))
 		
 	def swapyz(self):
 		f, g, h = self._tuple
 		subs_dict = {b : c, c : b}
-		return type(self)(*(ex.subs(subs_dict, simultaneous = True) for ex in (f, h, g)))
+		return type(self)(*(ex.subs(subs_dict, simultaneous = True, simplify = False) for ex in (f, h, g)))
 
 	def swapzx(self):
 		f, g, h = self._tuple
 		subs_dict = {c : a, a : c}
-		return type(self)(*(ex.subs(subs_dict, simultaneous = True) for ex in (h, g, f)))
+		return type(self)(*(ex.subs(subs_dict, simultaneous = True, simplify = False) for ex in (h, g, f)))
 	
 	def homotetic(self, p, h):
 		if not p.is_normalized():
@@ -144,13 +142,14 @@ class Nvector(Ntuple, _PointTransform):
 #curve described by an homogeneous equation
 class Curve:
 	
-	@_decorator_simplify
-	def __init__(self, eqn):
+	def __init__(self, eqn, simplify = True):
 		if isinstance(eqn, sympy.Equality):
 			self._eqn = eqn.lhs - eqn.rhs
 		else:
 			self._eqn = eqn
-		self._eqn = sympy.simplify(self._eqn)
+		if simplify:
+			self._eqn = sympy.simplify(self._eqn)
+			self.simplify()
 	
 	def __repr__(self):
 		self.simplify()
@@ -159,24 +158,24 @@ class Curve:
 	def eqn(self):
 		return sympy.Eq(self._eqn, 0)
 	
-	def subs(self, *args, **kwargs):
-		return Curve(self._eqn.subs(*args, **kwargs))
+	def subs(self, *args, simplify = True, **kwargs):
+		return Curve(self._eqn.subs(*args, **kwargs), simplify = simplify)
 	
 	def cycle(self):
 		subs_dict = {a : b, b : c, c : a, x : y, y : z, z : x}
-		return self.subs(subs_dict, simultaneous = True)
+		return self.subs(subs_dict, simultaneous = True, simplify = False)
 
 	def swapxy(self):
 		subs_dict = {a : b, b : a, x : y, y : x}
-		return self.subs(subs_dict, simultaneous = True)
+		return self.subs(subs_dict, simultaneous = True, simplify = False)
 		
 	def swapyz(self):
 		subs_dict = {b : c, c : b, y : z, z : y}
-		return self.subs(subs_dict, simultaneous = True)
+		return self.subs(subs_dict, simultaneous = True, simplify = False)
 
 	def swapzx(self):
 		subs_dict = {c : a, a : c, z : x, x : z}
-		return self.subs(subs_dict, simultaneous = True)
+		return self.subs(subs_dict, simultaneous = True, simplify = False)
 	
 	def homotetic(self, p, h):
 		s = x + y + z
