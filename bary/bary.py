@@ -284,6 +284,15 @@ def collinear(p1, p2, p3):
 def distance(p1, p2):
 	return vector_length(displacement_vector(p1, p2, normalized = True))
 
+def area(p1, p2, p3):
+	if not p1.is_normalized():
+		p1 = Npoint(*p1)
+	if not p2.is_normalized():
+		p2 = Npoint(*p2)
+	if not p3.is_normalized():
+		p3 = Npoint(*p3)
+	return S / 2 * sympy.det(sympy.Matrix([list(p1), list(p2), list(p3)]))
+
 def midpoint(p1, p2, weight1 = 1, weight2 = 1):
 	if not p1.is_normalized():
 		p1 = Npoint(*p1)
