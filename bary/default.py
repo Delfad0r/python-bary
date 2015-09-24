@@ -1,4 +1,4 @@
-from bary import *
+from bary.bary import *
 
 #important points
 A = Point(1, 0, 0)
