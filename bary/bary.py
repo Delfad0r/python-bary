@@ -246,13 +246,13 @@ def cyclic3uple(ex0):
 def cycle(obj):
 	return obj.cycle()
 
-def swapxy(o):
+def swapxy(obj):
 	return obj.swapxy()
 	
-def swapyz(o):
+def swapyz(obj):
 	return obj.swapyz()
 
-def swapzx(o):
+def swapzx(obj):
 	return obj.swapzx()
 
 def homothetic(p, h, obj):
