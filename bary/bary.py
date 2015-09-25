@@ -337,7 +337,10 @@ def circle_through_three_points(p1, p2, p3):
 	u, v, w = tuple(sympy.Dummy(s) for s in ('u', 'v', 'w'))
 	circle = Circle(u, v, w)
 	equations = [belongs_to(circle, p) for p in (p1, p2, p3)]
-	return circle.subs(sympy.solve(equations, u, v, w))
+	sol = sympy.solve(equations, u, v, w, dict = True)
+	if len(sol) != 1:
+		raise BaryException()
+	return circle.subs(sol[0])
 
 def circle_center_radius(c, r):
 	return Curve(distance(c, Point(x, y, z)) ** 2 - r ** 2)
