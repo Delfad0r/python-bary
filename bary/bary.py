@@ -152,14 +152,13 @@ class Curve:
 			self.simplify()
 	
 	def __repr__(self):
-		self.simplify()
 		return self.eqn().__repr__()
 	
 	def eqn(self):
 		return sympy.Eq(self._eqn, 0)
 	
 	def subs(self, *args, simplify = True, **kwargs):
-		return Curve(self._eqn.subs(*args, **kwargs), simplify = simplify)
+		return type(self)(self._eqn.subs(*args, **kwargs), simplify = simplify)
 	
 	def cycle(self):
 		subs_dict = {a : b, b : c, c : a, x : y, y : z, z : x}
@@ -217,8 +216,8 @@ def hsolve(f, *symbols, **flags):
 			if sym not in sol:
 				freedom_deg += 1
 				sol[sym] = sym
-			else:
-				sol[sym] = sol[sym].subs([(sympy.Abs(s), s) for s in symbols])
+			elif flags.get('keep_abs') != True:
+				sol[sym] = sol[sym].replace(sympy.Abs, lambda arg: arg)
 		if freedom_deg != 1:
 			raise BaryException()
 		ret.append(Htuple(*tuple(sol[sym] for sym in symbols)))
@@ -271,7 +270,10 @@ def Point(x, y, z):
 
 def is_same_point(p1, p2):
 	l1, l2 = tuple(p1), tuple(p2)
-	return sympy.simplify(sympy.And(sympy.Eq(l1[0] * l2[1] - l1[1] * l2[0], 0), sympy.Eq(l1[0] * l2[2] - l1[2] * l2[0])))
+	return sympy.simplify(sympy.And(
+		sympy.Eq(l1[0] * l2[1] - l1[1] * l2[0], 0),
+		sympy.Eq(l1[0] * l2[2] - l1[2] * l2[0], 0),
+		sympy.Eq(l1[1] * l2[2] - l1[2] * l2[1], 0)))
 
 def collinear(p1, p2, p3):
 	l1, l2, l3 = list(p1), list(p2), list(p3)
@@ -327,11 +329,37 @@ def parallel_through_point(r, p):
 
 def parallel(r1, r2):
 	return concur(r1, r2, Line(1, 1, 1))
+
+def perpendicular_bisector(p1, p2):
+	return perpendicular_through_point(line_through_two_points(p1, p2), midpoint(p1, p2))
 	
 
 #circles
-def Circle(u, v, w):
-	return Curve(-a ** 2 * y * z - b ** 2 * z * x - c ** 2 * x * y + (x + y + z) * (u * x + v * y + w * z))
+class Circle(Curve):
+	
+	def __init__(self, u, v, w):
+		self._eqn = -a ** 2 * y * z - b ** 2 * z * x - c ** 2 * x * y + (x + y + z) * (u * x + v * y + w * z)
+	
+	def intersect(self, other, **flags):
+		if not isinstance(other, Circle):
+			raise BaryException()
+		if sympy.count_ops(self.eqn()) > sympy.count_ops(other.eqn()):
+			raise BaryException()
+		return [Point(*sol) for sol in hsolve([self.eqn(), ((self._eqn - other._eqn) / (x + y + z)).simplify()], x, y, z, **flags)]
+	
+	def subs(self, *args, **kwargs):
+		ret = Circle(0, 0, 0)
+		ret._eqn = self._eqn.subs(*args, **kwargs)
+		return ret
+	
+	def is_valid(self):
+		return True
+	
+	def simplify(self):
+		pass
+	
+#def Circle(u, v, w):
+#	return Curve(-a ** 2 * y * z - b ** 2 * z * x - c ** 2 * x * y + (x + y + z) * (u * x + v * y + w * z), simplify = False)
 
 def circle_through_three_points(p1, p2, p3):
 	u, v, w = tuple(sympy.Dummy(s) for s in ('u', 'v', 'w'))
@@ -342,19 +370,24 @@ def circle_through_three_points(p1, p2, p3):
 		raise BaryException()
 	return circle.subs(sol[0])
 
-def circle_center_radius(c, r):
-	return Curve(distance(c, Point(x, y, z)) ** 2 - r ** 2)
-
 def pow(circle, p):
 	if not p.is_normalized():
 		p = Npoint(*p)
 	l = tuple(p)
-	return circle.eqn().lhs.subs([(x, l[0]), (y, l[1]), (z, l[2])])
+	return sympy.simplify(circle.eqn().lhs.subs([(x, l[0]), (y, l[1]), (z, l[2])]))
 	
 	
 #curves
-def intersect(c1, c2):
-	return [Point(*sol) for sol in hsolve([c1.eqn(), c2.eqn()], x, y, z)]
+def intersect(c1, c2, **flags):
+	try:
+		return c1.intersect(c2, **flags)
+	except (BaryException, AttributeError):
+		pass
+	try:
+		return c2.intersect(c1, **flags)
+	except (BaryException, AttributeError):
+		pass
+	return [Point(*sol) for sol in hsolve([c1.eqn(), c2.eqn()], x, y, z, **flags)]
 
 def concur(c1, c2, c3):
 	points = intersect(c1, c2)
