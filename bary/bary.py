@@ -34,7 +34,7 @@ class _EnhancedTuple:
 		return self._tuple.__len__()
 	
 	def subs(self, *args, simplify = True, **kwargs):
-		return type(self)(*(ex.subs(*args, **kwargs) for ex in self._tuple), simplify = simplify)
+		return type(self)(*tuple(ex.subs(*args, **kwargs) for ex in self._tuple), simplify = simplify)
 		
 	def is_valid(self):
 		return any(ex != 0 for ex in self._tuple)
@@ -211,15 +211,11 @@ def hsolve(f, *symbols, **flags):
 	solutions = sympy.solve(f, *symbols, **flags)
 	ret = []
 	for sol in solutions:
-		freedom_deg = 0
 		for sym in symbols:
 			if sym not in sol:
-				freedom_deg += 1
 				sol[sym] = sym
 			elif flags.get('keep_abs') != True:
 				sol[sym] = sol[sym].replace(sympy.Abs, lambda arg: arg)
-		if freedom_deg != 1:
-			raise BaryException()
 		ret.append(Htuple(*tuple(sol[sym] for sym in symbols)))
 	return ret
 
@@ -357,9 +353,6 @@ class Circle(Curve):
 	
 	def simplify(self):
 		pass
-	
-#def Circle(u, v, w):
-#	return Curve(-a ** 2 * y * z - b ** 2 * z * x - c ** 2 * x * y + (x + y + z) * (u * x + v * y + w * z), simplify = False)
 
 def circle_through_three_points(p1, p2, p3):
 	u, v, w = tuple(sympy.Dummy(s) for s in ('u', 'v', 'w'))
