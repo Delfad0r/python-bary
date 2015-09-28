@@ -34,7 +34,12 @@ class _EnhancedTuple:
 		return self._tuple.__len__()
 	
 	def subs(self, *args, simplify = True, **kwargs):
-		return type(self)(*tuple(ex.subs(*args, **kwargs) for ex in self._tuple), simplify = simplify)
+		return type(self)(*(ex.subs(*args, **kwargs) for ex in self._tuple), simplify = simplify)
+	
+	def to_dict(self, *symbols):
+		if len(self) != len(symbols):
+			raise BaryException()
+		return dict(zip(symbols, self))
 		
 	def is_valid(self):
 		return any(ex != 0 for ex in self._tuple)
@@ -320,6 +325,12 @@ def perpendicular_through_point(r, p):
 def perpendicular(r1, r2):
 	return vector_perpendicular(infinity_point(r1),	infinity_point(r2))
 
+def projection(r, p):
+	sol = intersect(perpendicular_through_point(r, p), r)
+	if len(sol) != 1:
+		raise BaryException()
+	return sol[0]
+
 def parallel_through_point(r, p):
 	return line_through_two_points(p, infinity_point(r))
 
@@ -391,6 +402,12 @@ def concur(c1, c2, c3):
 def belongs_to(c, p):
 	l = tuple(p)
 	return sympy.simplify(c.eqn().subs([(x, l[0]), (y, l[1]), (z, l[2])]))
+
+def point_on(c, sym_x, sym_y, sym_z):
+	sol = hsolve(belongs_to(c, Point(sym_x, sym_y, sym_z)), sym_x, sym_y, sym_z)
+	if len(sol) != 1:
+		raise BaryException()
+	return Point(*sol[0])
 
 
 #vectors
